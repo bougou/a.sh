@@ -45,7 +45,7 @@ function a.util.compare_version() {
         else
             v2=${version2_array[i]}
 
-            if `is_number "${v1}"` && `is_number "${v2}"`; then
+            if `a.util.is_number "${v1}"` && `a.util.is_number "${v2}"`; then
                 if [ "$v1" -gt "$v2" ]; then # numeric greater
                     [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
                 elif [[ "$v1" -lt "$v2" ]]; then # numeric lower

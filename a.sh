@@ -255,7 +255,7 @@ function a.util.compare_version() {
         else
             v2=${version2_array[i]}
 
-            if `is_number "${v1}"` && `is_number "${v2}"`; then
+            if `a.util.is_number "${v1}"` && `a.util.is_number "${v2}"`; then
                 if [ "$v1" -gt "$v2" ]; then # numeric greater
                     [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
                 elif [[ "$v1" -lt "$v2" ]]; then # numeric lower
@@ -498,7 +498,7 @@ function a.k8s.get_k8s_statefulset_pod_replicas() {
 
     local stateful_replicas=$(curl -sS --cacert "$KUBE_CACERT" -H "Authorization: Bearer $KUBE_TOKEN" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$KUBE_NAMESPACE/endpoints/$pod_subdomain | jq -r '.subsets[0].addresses | length')
 
-    if is_number $stateful_replicas; then
+    if a.util.is_number $stateful_replicas; then
       echo $stateful_replicas
       return 0
     fi
@@ -567,7 +567,7 @@ function a.k8s.get_pod_ordinal() {
   local _host=`hostname -s`
 
   if [[ -n "${POD_ORDINAL:+1}" ]]; then
-    if is_number ${POD_ORDINAL}; then
+    if a.util.is_number ${POD_ORDINAL}; then
       echo "${POD_ORDINAL}"
     else
       echo "The POD_ORDINAL must be a valid number."
@@ -582,7 +582,7 @@ function a.k8s.get_pod_ordinal() {
     fi
   fi
 }
-export a.k8s.get_pod_ordinal
+export -f a.k8s.get_pod_ordinal
 
 
 function a.k8s.get_pod_replicas() {
@@ -590,7 +590,7 @@ function a.k8s.get_pod_replicas() {
   # 2. Try to auto derive pod replicas
   # 3. default 1
   if [[ -n "${POD_REPLICAS:+1}" ]]; then
-    if is_number ${POD_REPLICAS}; then
+    if a.util.is_number ${POD_REPLICAS}; then
       echo "${POD_REPLICAS}"
     else
       echo "The POD_REPLICAS must be a valid number."
