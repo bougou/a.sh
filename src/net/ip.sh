@@ -19,7 +19,7 @@ export -f a.net.valid_ipv4
 
 
 # Todo, delete, renamed to wait_until_hostname_resolved
-function wait_until_resolve_hostname() {
+function a.net.wait_until_resolve_hostname() {
     local _host="$1"
 
     if valid_ipv4 "$_host"; then
@@ -40,10 +40,10 @@ function wait_until_resolve_hostname() {
         fi
     done
 }
-export -f wait_until_resolve_hostname
+export -f a.net.wait_until_resolve_hostname
 
 
-function wait_until_hostname_resolved() {
+function a.net.wait_until_hostname_resolved() {
     local _host="$1"
 
     if valid_ipv4 "$_host"; then
@@ -64,9 +64,9 @@ function wait_until_hostname_resolved() {
         fi
     done
 }
-export -f wait_until_hostname_resolved
+export -f a.net.wait_until_hostname_resolved
 
-function wait_until_port_reached() {
+function a.net.wait_until_port_reached() {
     local _h=$1
     local _p=$2
     while true; do
@@ -79,4 +79,4 @@ function wait_until_port_reached() {
         fi
     done
 }
-export -f wait_until_port_reached
+export -f a.net.wait_until_port_reached
