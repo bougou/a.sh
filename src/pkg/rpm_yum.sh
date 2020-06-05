@@ -15,4 +15,4 @@ function a.pkg.rpm_package_installed() {
   # determine whether a rpm package is installed
   rpm -qa | grep -sq $1
 }
-export -f a.pkg.package_installed
+export -f a.pkg.rpm_package_installed
