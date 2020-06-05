@@ -1,17 +1,17 @@
 #!/bin/bash
 
 
-function is_number() {
+function a.util.is_number() {
     if [[ "$1" =~ ^[0-9]+$ ]]; then
         return 0
     else
         return 1
     fi
 }
-export -f is_number
+export -f a.util.is_number
 
 
-function compare_version() {
+function a.util.compare_version() {
     # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
     # Given two versions, convert them into two arrays by splitting the version string by dot(.).
     # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
@@ -73,10 +73,10 @@ function compare_version() {
     return $FALSE
 
 }
-export -f compare_version
+export -f a.util.compare_version
 
 
-function download_file() {
+function a.util.download_file() {
   local _filepath=$1
   local _fileurl=$2
 
@@ -89,11 +89,11 @@ function download_file() {
   echo "Downloading file: $(basename $_filepath)"
   curl ${zflag} -o "$_filepath" "$_fileurl"
 }
-export -f download_file
+export -f a.util.download_file
 
 
 
-function check_variables() {
+function a.util.check_variables() {
     # helper function to make sure variables NOT EMPTY
     # usage: check_variables var1 var2 var3 ...
     for i in "$@"; do
@@ -106,21 +106,4 @@ function check_variables() {
         fi
     done
 }
-export -f check_variables
-
-
-# If a line ends with a \, strip the backslash and print the line with no terminating newline;
-# otherwise print the line with a terminating newline.
-function combine_lines_backslash() {
-  if [[ $# -ge 1 ]]; then
-    # read from file, only use the first param, others are ignored
-    local CONTENT="$(cat $1)"
-  else
-    # echo "Read content from stdin..."
-    # echo "You can send your content through pipe, like: echo "something" | this_script"
-    local CONTENT=$(</dev/stdin)
-  fi
-
-  echo "$CONTENT" | awk '{if (sub(/\\$/,"")) printf "%s", $0; else print $0}'
-}
-export -f combine_lines_backslash
+export -f a.util.check_variables

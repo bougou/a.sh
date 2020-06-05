@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function create_mysql_db_user_pass() {
+function a.db.create_mysql_db_user_pass() {
   if [[ $# -lt 1 ]]; then
     echo "Error: Invalid parameters"
     cat <<EOF
@@ -75,4 +75,4 @@ EOSQL
 
   done
 }
-export -f create_mysql_db_user_pass
+export -f a.db.create_mysql_db_user_pass

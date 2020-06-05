@@ -6,7 +6,7 @@
 ###
 ###
 
-function get_container_ip() {
+function a.k8s.get_container_ip() {
   # scrape the first non-localhost IP address of the container
   # eg: in Docker Swarm Mode, we often get two IPs -- the container IP, and the (shared) VIP, and the container IP should always be first
   ip address | awk '
@@ -17,10 +17,10 @@ function get_container_ip() {
     }
   '
 }
-export -f get_container_ip
+export -f a.k8s.get_container_ip
 
 
-function get_k8s_pod_self_info() {
+function a.k8s.get_k8s_pod_self_info() {
   # used inside the pod
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
   local KUBE_NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
@@ -28,10 +28,10 @@ function get_k8s_pod_self_info() {
 
   curl -sS --cacert "$KUBE_CACERT" -H "Authorization: Bearer $KUBE_TOKEN" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$KUBE_NAMESPACE/pods/$HOSTNAME
 }
-export -f get_k8s_pod_self_info
+export -f a.k8s.get_k8s_pod_self_info
 
 
-function get_k8s_statefulset_pod_replicas() {
+function a.k8s.get_k8s_statefulset_pod_replicas() {
   # used inside the pod
   # a statefulset pod can get the replicas of the statefulset, and then use the number to do something
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -55,7 +55,7 @@ function get_k8s_statefulset_pod_replicas() {
   echo "UNKNOWN"
   return 1
 }
-export -f get_k8s_statefulset_pod_replicas
+export -f a.k8s.get_k8s_statefulset_pod_replicas
 
 
 #
@@ -68,7 +68,7 @@ export -f get_k8s_statefulset_pod_replicas
 # Note: pod_name is not Pod Hostname
 # eg: for statefulset pods, hostname is "zookeeper-0", here the pod_name is "zookeeper"
 # the usage of pod_name is for automatically constructing other pods name like "zookeeper-1" inside the pod.
-function get_pod_name() {
+function a.k8s.get_pod_name() {
   # 1. If POD_NAME is set and not emtpy, use it.
   # 2. Try to auto derive pod name
   # 3. default hostname
@@ -86,10 +86,10 @@ function get_pod_name() {
     fi
   fi
 }
-export -f get_pod_name
+export -f a.k8s.get_pod_name
 
 
-function get_pod_domain() {
+function a.k8s.get_pod_domain() {
   # 1. Try to auto derive pod domain
   # 2. default empty
   local _domain=''
@@ -100,10 +100,10 @@ function get_pod_domain() {
 
   echo $_domain
 }
-export -f get_pod_domain
+export -f a.k8s.get_pod_domain
 
 
-function get_pod_fqdn() {
+function a.k8s.get_pod_fqdn() {
   local _domain="$(get_pod_domain)"
 
   if [[ "X${_domain}" != "X" ]]; then
@@ -112,10 +112,10 @@ function get_pod_fqdn() {
     echo "$(hostname)"
   fi
 }
-export -f get_pod_fqdn
+export -f a.k8s.get_pod_fqdn
 
 
-function get_pod_ordinal() {
+function a.k8s.get_pod_ordinal() {
   # 1. If POD_ORDINAL is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod ordinal
   # 3. default 0
@@ -137,10 +137,10 @@ function get_pod_ordinal() {
     fi
   fi
 }
-export get_pod_ordinal
+export a.k8s.get_pod_ordinal
 
 
-function get_pod_replicas() {
+function a.k8s.get_pod_replicas() {
   # 1. If POD_REPLICAS is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod replicas
   # 3. default 1
@@ -157,4 +157,4 @@ function get_pod_replicas() {
     echo 1
   fi
 }
-export -f get_pod_replicas
+export -f a.k8s.get_pod_replicas

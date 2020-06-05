@@ -211,17 +211,17 @@ function a.net.run-over-scp() {
 export -f a.net.run-over-scp
 
 
-function is_number() {
+function a.util.is_number() {
     if [[ "$1" =~ ^[0-9]+$ ]]; then
         return 0
     else
         return 1
     fi
 }
-export -f is_number
+export -f a.util.is_number
 
 
-function compare_version() {
+function a.util.compare_version() {
     # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
     # Given two versions, convert them into two arrays by splitting the version string by dot(.).
     # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
@@ -283,10 +283,10 @@ function compare_version() {
     return $FALSE
 
 }
-export -f compare_version
+export -f a.util.compare_version
 
 
-function download_file() {
+function a.util.download_file() {
   local _filepath=$1
   local _fileurl=$2
 
@@ -299,11 +299,11 @@ function download_file() {
   echo "Downloading file: $(basename $_filepath)"
   curl ${zflag} -o "$_filepath" "$_fileurl"
 }
-export -f download_file
+export -f a.util.download_file
 
 
 
-function check_variables() {
+function a.util.check_variables() {
     # helper function to make sure variables NOT EMPTY
     # usage: check_variables var1 var2 var3 ...
     for i in "$@"; do
@@ -316,28 +316,13 @@ function check_variables() {
         fi
     done
 }
-export -f check_variables
+export -f a.util.check_variables
 
-
-function combine_lines_backslash() {
-  if [[ $# -ge 1 ]]; then
-    # read from file, only use the first param, others are ignored
-    local CONTENT="$(cat $1)"
-  else
-    # echo "Read content from stdin..."
-    # echo "You can send your content through pipe, like: echo "something" | this_script"
-    local CONTENT=$(</dev/stdin)
-  fi
-
-  echo "$CONTENT" | awk '{if (sub(/\\$/,"")) printf "%s", $0; else print $0}'
-}
-export -f combine_lines_backslash
-
-function command_existed() {
+function a.util.command_existed() {
   # check whether a command exists
   command -v "$1" >/dev/null 2>&1
 }
-export -f command_existed
+export -f a.util.command_existed
 
 function a.util.get_env_vars() {
   declare -xp | sed 's/^declare -x //'
@@ -421,6 +406,20 @@ function a.util.shell_array_to_yaml_dash_list() {
 }
 export -f a.util.shell_array_to_yaml_dash_list
 
+function a.file.combine_lines_backslash() {
+  if [[ $# -ge 1 ]]; then
+    # read from file, only use the first param, others are ignored
+    local CONTENT="$(cat $1)"
+  else
+    # echo "Read content from stdin..."
+    # echo "You can send your content through pipe, like: echo "something" | this_script"
+    local CONTENT=$(</dev/stdin)
+  fi
+
+  echo "$CONTENT" | awk '{if (sub(/\\$/,"")) printf "%s", $0; else print $0}'
+}
+export -f a.file.combine_lines_backslash
+
 
 function a.config.update_config() {
   key=$1
@@ -460,7 +459,7 @@ function a.config.mod_file() {
 export -f a.config.mod_file
 
 
-function get_container_ip() {
+function a.k8s.get_container_ip() {
   # scrape the first non-localhost IP address of the container
   # eg: in Docker Swarm Mode, we often get two IPs -- the container IP, and the (shared) VIP, and the container IP should always be first
   ip address | awk '
@@ -471,10 +470,10 @@ function get_container_ip() {
     }
   '
 }
-export -f get_container_ip
+export -f a.k8s.get_container_ip
 
 
-function get_k8s_pod_self_info() {
+function a.k8s.get_k8s_pod_self_info() {
   # used inside the pod
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
   local KUBE_NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
@@ -482,10 +481,10 @@ function get_k8s_pod_self_info() {
 
   curl -sS --cacert "$KUBE_CACERT" -H "Authorization: Bearer $KUBE_TOKEN" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$KUBE_NAMESPACE/pods/$HOSTNAME
 }
-export -f get_k8s_pod_self_info
+export -f a.k8s.get_k8s_pod_self_info
 
 
-function get_k8s_statefulset_pod_replicas() {
+function a.k8s.get_k8s_statefulset_pod_replicas() {
   # used inside the pod
   # a statefulset pod can get the replicas of the statefulset, and then use the number to do something
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -509,12 +508,12 @@ function get_k8s_statefulset_pod_replicas() {
   echo "UNKNOWN"
   return 1
 }
-export -f get_k8s_statefulset_pod_replicas
+export -f a.k8s.get_k8s_statefulset_pod_replicas
 
 
 
 
-function get_pod_name() {
+function a.k8s.get_pod_name() {
   # 1. If POD_NAME is set and not emtpy, use it.
   # 2. Try to auto derive pod name
   # 3. default hostname
@@ -532,10 +531,10 @@ function get_pod_name() {
     fi
   fi
 }
-export -f get_pod_name
+export -f a.k8s.get_pod_name
 
 
-function get_pod_domain() {
+function a.k8s.get_pod_domain() {
   # 1. Try to auto derive pod domain
   # 2. default empty
   local _domain=''
@@ -546,10 +545,10 @@ function get_pod_domain() {
 
   echo $_domain
 }
-export -f get_pod_domain
+export -f a.k8s.get_pod_domain
 
 
-function get_pod_fqdn() {
+function a.k8s.get_pod_fqdn() {
   local _domain="$(get_pod_domain)"
 
   if [[ "X${_domain}" != "X" ]]; then
@@ -558,10 +557,10 @@ function get_pod_fqdn() {
     echo "$(hostname)"
   fi
 }
-export -f get_pod_fqdn
+export -f a.k8s.get_pod_fqdn
 
 
-function get_pod_ordinal() {
+function a.k8s.get_pod_ordinal() {
   # 1. If POD_ORDINAL is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod ordinal
   # 3. default 0
@@ -583,10 +582,10 @@ function get_pod_ordinal() {
     fi
   fi
 }
-export get_pod_ordinal
+export a.k8s.get_pod_ordinal
 
 
-function get_pod_replicas() {
+function a.k8s.get_pod_replicas() {
   # 1. If POD_REPLICAS is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod replicas
   # 3. default 1
@@ -603,7 +602,7 @@ function get_pod_replicas() {
     echo 1
   fi
 }
-export -f get_pod_replicas
+export -f a.k8s.get_pod_replicas
 
 function info_print() {
   msg=$1
@@ -634,7 +633,7 @@ function echo_ok() { echo -e "${c_ok}$1${c_no}"; } && export -f echo_ok
 function echo_hl() { echo -e "${c_hl}$1${c_no}"; } && export -f echo_hl
 function echo_exp() { echo -e "${c_exp}$1${c_no}"; } && export -f echo_exp
 
-function create_mysql_db_user_pass() {
+function a.db.create_mysql_db_user_pass() {
   if [[ $# -lt 1 ]]; then
     echo "Error: Invalid parameters"
     cat <<EOF
@@ -709,9 +708,9 @@ EOSQL
 
   done
 }
-export -f create_mysql_db_user_pass
+export -f a.db.create_mysql_db_user_pass
 
-function rpm_yum_install() {
+function a.pkg.rpm_yum_install() {
   # yum install a list of packages and omit already installed packages.
   local _not_installed_pkgs=""
   for _pkg in $@; do
@@ -719,11 +718,11 @@ function rpm_yum_install() {
   done
   [[ "X$_not_installed_pkgs" != "X" ]] && yum install -y $_not_installed_pkgs || :
 }
-export -f rpm_yum_install
+export -f a.pkg.rpm_yum_install
 
 
-function rpm_package_installed() {
+function a.pkg.rpm_package_installed() {
   # determine whether a rpm package is installed
   rpm -qa | grep -sq $1
 }
-export -f package_installed
+export -f a.pkg.package_installed
