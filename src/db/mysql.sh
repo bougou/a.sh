@@ -76,3 +76,20 @@ EOSQL
   done
 }
 export -f a.db.create_mysql_db_user_pass
+
+function a.db.get_mysql_db_all_size() {
+  mysql "$@" -e "
+use information_schema;
+select concat(sum(data_length) / 1024 / 1024 / 1024, ' G') from tables where table_schema not in ('information_schema', 'performance_schema', 'test');
+"
+
+# output example
+cat >/dev/null <<EOF
++-----------------------------------------------------+
+| concat(sum(data_length) / 1024 / 1024 / 1024, ' G') |
++-----------------------------------------------------+
+| 0.002191769890 G                                    |
++-----------------------------------------------------+
+EOF
+}
+export -f a.db.get_mysql_db_all_size

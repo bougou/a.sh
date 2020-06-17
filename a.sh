@@ -1,6 +1,34 @@
 #!/bin/bash
 
+function a.docker.ct_pid() {
+  # You pass multiple container identifiers
+  docker inspect --format '{{.State.Pid}}' "$@"
+}
+export -f a.docker.ct_pid
+
+function a.docker.ct_ip() {
+  docker inspect --format '{{.NetworkSettings.IPAddress}}' "$@"
+}
+export -f a.docker.ct_ip
+
+function a.docker.ct_enter() {
+  # equivalent to docker exec
+
+  local ct_name=$1
+  # Get the pid of the first process in the container.
+  local ct_pid=$(docker inspect -f {{.State.Pid}} $ct_name)
+
+  nsenter --target $ct_pid --mount --uts --ipc --net --pid
+}
+export -f a.docker.ct_enter
+
 alias a.net.tcp_state_sum='ss -ant | tail -n+2 | awk '\''{print $1}'\''| sort | uniq -c | sort -n'
+
+function a.net.show_tcp_state() {
+  # netstat -an | awk '/^tcp/{++state[$NF]} END{for(key in state) print key,"\t",state[key]}'
+  ss -at -n | sed '1d' | awk '{++state[$1]} END{for(key in state) print key,"\t",state[key]}' | column -t
+}
+export -f a.net.show_tcp_state
 
 function a.net.valid_ipv4() {
   local ip=$1
@@ -604,34 +632,117 @@ function a.k8s.get_pod_replicas() {
 }
 export -f a.k8s.get_pod_replicas
 
-function info_print() {
-  msg=$1
-  printf "%-60s  " "$msg"
+export _style_no="\033[0m"            # no color
+
+export _style_red="\033[0;31m"
+export _style_blue="\033[1;34m"
+export _style_green="\033[0;32m"
+
+export _style_black="\033[0;30m"
+export _style_red="\033[0;31m"
+export _style_green="\033[0;32m"
+export _style_orange="\033[0;33m" # 棕黄
+export _style_blue="\033[0;34m"
+export _style_purple="\033[0;35m"
+export _style_cyan="\033[0;36m"   # 青
+export _style_light_gray="\033[0;37m"
+
+export _style_dark_gray="\033[1;30m"
+export _style_bold_red="\033[1;31m"
+export _style_bold_green="\033[1;32m"
+export _style_bold_orange="\033[1;33m"
+export _style_bold_blue="\033[1;34m"
+export _style_bold_purple="\033[1;35m"
+export _style_bold_cyan="\033[1;36m"   # 青
+export _style_bold_gray="\033[1;37m"
+
+
+export _style_info="\033[30m"         # gray
+export _style_ok="\033[42m"           # green
+export _style_warn="\033[43m"         # yellow
+export _style_error="\033[41m"        # red
+
+export _style_highlight="\033[46m"    # blue
+export _style_explanation="\033[34m"  # explanation
+export _style_bold="\033[1m"          # bold
+
+
+function style_echo() {
+  local color=$(eval echo \$$"_style_$1")
+  local content="$2"
+  echo -e "${color}${content}${_style_no}"
 }
-export -f info_print
-
-export c_no="\e[0m"
-
-export c_ok="\e[42m"
-
-export c_warn="\e[43m"
-
-export c_err="\e[41m"
+export -f style_echo
 
 
-export c_hl="\e[46m"
+function echo_info() {
+  style_echo info "$*"
+}
+export -f echo_info
 
-export c_exp="\e[34m"
+function echo_warn() {
+  style_echo warn "$*"
+}
+export -f echo_warn
 
-export c_bold="\e[1m"
+function echo_error() {
+  style_echo error "$*"
+}
+export -f echo_error
+
+function echo_ok() {
+  style_echo ok "$*"
+}
+export -f echo_ok
+
+function echo_highlight() {
+  style_echo highlight "$*"
+}
+export -f echo_highlight
 
 
-function echo_warn() { echo -e "${c_warn}$1${c_no}"; } && export -f echo_warn
-function echo_err() { echo -e "${c_err}$1${c_no}"; } && export -f echo_err
-function echo_ok() { echo -e "${c_ok}$1${c_no}"; } && export -f echo_ok
+log() {
+  echo "$(date +'%F %T.%3N') | $(echo_info INFO) | $*"
+}
+export -f log
 
-function echo_hl() { echo -e "${c_hl}$1${c_no}"; } && export -f echo_hl
-function echo_exp() { echo -e "${c_exp}$1${c_no}"; } && export -f echo_exp
+log_info() {
+  echo "$(date +'%F %T.%3N') | $(echo_info INFO) | $*"
+}
+export -f log_info
+
+log_warn() {
+  echo "$(date +'%F %T.%3N') | $(echo_warn WARN) | $*"
+}
+export -f log_warn
+
+log_err() {
+  echo "$(date +'%F %T.%3N') | $(echo_error ERROR) | $*"
+}
+export -f log_err
+
+
+
+underline() { printf "${underline}${bold}%s${reset}\n" "$@"
+}
+h1() { printf "\n${underline}${bold}${blue}%s${reset}\n" "$@"
+}
+h2() { printf "\n${underline}${bold}${white}%s${reset}\n" "$@"
+}
+debug() { printf "${white}%s${reset}\n" "$@"
+}
+info() { printf "${white}➜ %s${reset}\n" "$@"
+}
+success() { printf "${green}✔ %s${reset}\n" "$@"
+}
+error() { printf "${red}✖ %s${reset}\n" "$@"
+}
+warn() { printf "${tan}➜ %s${reset}\n" "$@"
+}
+bold() { printf "${bold}%s${reset}\n" "$@"
+}
+note() { printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
+}
 
 function a.db.create_mysql_db_user_pass() {
   if [[ $# -lt 1 ]]; then
@@ -709,6 +820,188 @@ EOSQL
   done
 }
 export -f a.db.create_mysql_db_user_pass
+
+function a.db.get_mysql_db_all_size() {
+  mysql "$@" -e "
+use information_schema;
+select concat(sum(data_length) / 1024 / 1024 / 1024, ' G') from tables where table_schema not in ('information_schema', 'performance_schema', 'test');
+"
+
+cat >/dev/null <<EOF
++-----------------------------------------------------+
+| concat(sum(data_length) / 1024 / 1024 / 1024, ' G') |
++-----------------------------------------------------+
+| 0.002191769890 G                                    |
++-----------------------------------------------------+
+EOF
+}
+export -f a.db.get_mysql_db_all_size
+
+function a.os.show_top_oom_scores() {
+  printf "%5s %6s %s\n" "SCORE" "PID" "NAME"
+
+  for proc in $(find /proc -maxdepth 1 -regex '/proc/[0-9]+'); do
+    printf "%5d %6d %s\n" \
+      "$(cat $proc/oom_score)" \
+      "$(basename $proc)" \
+      "$(cat $proc/cmdline | tr '\0' ' ' | head -c 50)"
+  done 2>/dev/null | sort -nr | head -n 10
+}
+
+export -f a.os.show_top_oom_scores
+
+function a.os.dmi_info() {
+
+cat <<EOF | xargs -I {} sh -c 'printf "%30s: " {}; dmidecode -s {} | head -n1; echo' | sed '/^$/d'
+  bios-vendor
+  bios-version
+  bios-release-date
+  system-manufacturer
+  system-product-name
+  system-version
+  system-serial-number
+  system-uuid
+  baseboard-manufacturer
+  baseboard-product-name
+  baseboard-version
+  baseboard-serial-number
+  baseboard-asset-tag
+  chassis-manufacturer
+  chassis-type
+  chassis-version
+  chassis-serial-number
+  chassis-asset-tag
+  processor-family
+  processor-manufacturer
+  processor-version
+  processor-frequency
+EOF
+
+}
+export -f a.os.dmi_info
+
+function a.os.dmi_info2() {
+
+echo "
+bios-vendor
+bios-version
+bios-release-date
+system-manufacturer
+system-product-name
+system-version
+system-serial-number
+system-uuid
+baseboard-manufacturer
+baseboard-product-name
+baseboard-version
+baseboard-serial-number
+baseboard-asset-tag
+chassis-manufacturer
+chassis-type
+chassis-version
+chassis-serial-number
+chassis-asset-tag
+processor-family
+processor-manufacturer
+processor-version
+processor-frequency
+" | while read cmd
+do
+  [[ -z $cmd ]] && continue
+  printf "%-25s: " $cmd
+  OLD_IFS=$IFS
+  IFS=$(echo -en "\n\b");
+  res=$(dmidecode -s $cmd)
+  [[ -z $res ]] && echo '[none]' && continue
+  i=1
+  for r in $res; do
+    if [[ $i -eq 1 ]]; then
+      printf "%s\n" $r
+    else
+      printf " %.0s" {1..27}
+      printf "%s\n" $r
+	fi
+	i=$(( i+1 ))
+  done
+done
+IFS=$OLD_IFS
+
+}
+export -f a.os.dmi_info2
+
+function a.os.show_cpu_numbers() {
+  cpus_physical=`cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l`
+  cores_per_cpu=`cat  /proc/cpuinfo | grep "cpu cores" | sort | uniq | awk -F: '{print $2}'`
+  cores_all=$(( cores_per_cpu * cpus_physical ))
+  cpus_logical=`cat /proc/cpuinfo | grep "processor" | wc -l`
+
+  # Desc of Fields in File /proc/cpuinfo
+  # processor:    ID of logical CPU.
+  # physcial id:  ID of physcial CPU where the logical CPU resides.
+  # siblings:     Total logical CPUs of the physical CPU where the logical CPU resides.
+  # cpu cores:　  Total physical Cores of the physcial CPU where the logical CPU resides.
+
+  printf "%-40s%-10s\n" "Total physical CPUs:" $cpus_physical
+  printf "%-40s%-10s\n" "Cores per physical CPU:" $cores_per_cpu
+  printf "%-40s%-10s\n" "Total cores:" "$cores_all"
+  printf "%-40s%-10s\n" "Total logical CPUs:" "$cpus_logical"
+
+  if [[ $cpus_logical -eq $cores_all ]]; then
+      printf "%-40s%-10s\n" "Hyper Thread (HT):" "Not Enabled"
+  fi
+
+}
+export -f a.os.show_cpu_numbers
+
+function a.os.show_cpu_usage_of_pid() {
+  uptime=$(cat /proc/uptime | awk '{print $1}')
+  idletime=$(cat /proc/uptime | awk '{print $2}')
+
+  p_name=$(cat /proc/$PID/stat | awk '{print $2}')
+
+  p_utime_j=$(cat /proc/$PID/stat | awk '{print $14}')
+  p_utime=$(echo "scale=2;$p_utime_j/100" | bc)
+
+  p_stime_j=$(cat /proc/$PID/stat | awk '{print $15}')
+  p_stime=$(echo "scale=2;$p_stime_j/100" | bc)
+
+  p_cutime_j=$(cat /proc/$PID/stat | awk '{print $16}')
+  p_cutime=$(echo "scale=2;$p_cutime_j/100" | bc)
+
+  p_cstime_j=$(cat /proc/$PID/stat | awk '{print $17}')
+  p_cstime=$(echo "scale=2;$p_cstime_j/100" | bc)
+
+  p_starttime_j=$(cat /proc/$PID/stat | awk '{print $22}')
+  p_starttime=$(echo "scale=2;$p_starttime_j/100" | bc)
+
+  p_cputime_j=$(( p_utime_j + p_stime_j ))
+  p_cputime=$(echo "scale=2;$p_cputime_j/100" | bc)
+
+  p_runtime=$(echo "$uptime-$p_starttime" | bc)
+
+  p_cpu_percent=$(echo "scale=2;$p_cputime*100/$p_runtime" | bc)
+
+  echo "System information"
+  printf "%20s : %s seconds\n" "uptime" $uptime
+  printf "%20s : %s seconds\n" "idle" $idletime
+
+  echo
+  echo "Process information"
+  printf "%20s : %s\n" "PID" $PID
+  printf "%20s : %s\n" "filename" $p_name
+  printf "%20s : %s jiffies %s seconds\n" "utime" $p_utime_j $p_utime
+  printf "%20s : %s jiffies %s seconds\n" "stime" $p_stime_j $p_stime
+  printf "%20s : %s jiffies %s seconds\n" "cutime" $p_cutime_j $p_cutime
+  printf "%20s : %s jiffies %s seconds\n" "cstime" $p_cstime_j $p_cstime
+  printf "%20s : %s jiffies %s seconds\n" "starttime" $p_starttime_j $p_starttime
+
+  echo
+  printf "%20s : %s seconds\n" "Process run time" $p_runtime
+  printf "%20s : %s seconds\n" "Process CPU time" $p_cputime
+  printf "CPU Usage since birth: %s%%\n" $p_cpu_percent
+
+}
+export -f a.os.show_cpu_usage_of_pid
 
 function a.pkg.rpm_yum_install() {
   # yum install a list of packages and omit already installed packages.
