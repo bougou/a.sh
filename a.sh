@@ -634,42 +634,77 @@ export -f a.k8s.get_pod_replicas
 
 export _style_no="\033[0m"            # no color
 
-export _style_red="\033[0;31m"
-export _style_blue="\033[1;34m"
-export _style_green="\033[0;32m"
+declare -A fontStyle=(
+  ["normal"]="0"          # 正常
+  ["bold"]="1"            # 粗体
+  ["dim"]="2"             # 暗淡
+  ["underline"]="4"       # 下划线
+  ["blink"]="5"           # 闪烁
+  ["strikethrough"]="6"   # 删除线
+  ["invert"]="7"          # 反相
+  ["hidden"]="8"          # 隐藏
+)
 
-export _style_black="\033[0;30m"
-export _style_red="\033[0;31m"
-export _style_green="\033[0;32m"
-export _style_orange="\033[0;33m" # 棕黄
-export _style_blue="\033[0;34m"
-export _style_purple="\033[0;35m"
-export _style_cyan="\033[0;36m"   # 青
-export _style_light_gray="\033[0;37m"
+declare -A fontColor=(
+  ["default"]="39"
+  ["black"]="30"
+  ["red"]="31"
+  ["green"]="32"
+  ["yellow"]="33"
+  ["blue"]="34"
+  ["magenta"]="35"    # 洋红
+  ["cyan"]="36"       # 蓝绿
+  ["lightgray"]="37"
+  ["darkgray"]="90"
+  ["lightred"]="91"
+  ["lightgreen"]="92"
+  ["lightyellow"]="93"
+  ["lightblue"]="94"
+  ["lightmagenta"]="95"
+  ["lightcyan"]="96"
+  ["white"]="97"
+)
 
-export _style_dark_gray="\033[1;30m"
-export _style_bold_red="\033[1;31m"
-export _style_bold_green="\033[1;32m"
-export _style_bold_orange="\033[1;33m"
-export _style_bold_blue="\033[1;34m"
-export _style_bold_purple="\033[1;35m"
-export _style_bold_cyan="\033[1;36m"   # 青
-export _style_bold_gray="\033[1;37m"
+declare -A backgroundColor=(
+  ["default"]="49"
+  ["black"]="40"
+  ["red"]="41"
+  ["green"]="42"
+  ["yellow"]="43"
+  ["blue"]="44"
+  ["magenta"]="45"
+  ["cyan"]="46"
+  ["lightgray"]="47"
+  ["darkgray"]="100"
+  ["lightred"]="101"
+  ["lightgreen"]="102"
+  ["lightyellow"]="103"
+  ["lightblue"]="104"
+  ["lightmagenta"]="105"
+  ["lightcyan"]="106"
+  ["white"]="107"
+)
+
+for fs in ${!fontStyle[@]}; do
+  for fc in ${!fontColor[@]}; do
+    for bc in ${!backgroundColor[@]}; do
+      export "_style_${fs}_${fc}_${bc}=\033[${fontStyle[$fs]};${fontColor[$fc]};${backgroundColor[$bc]}m"
+    done
+  done
+done
 
 
-export _style_info="\033[30m"         # gray
-export _style_ok="\033[42m"           # green
-export _style_warn="\033[43m"         # yellow
-export _style_error="\033[41m"        # red
 
-export _style_highlight="\033[46m"    # blue
-export _style_explanation="\033[34m"  # explanation
-export _style_bold="\033[1m"          # bold
+export _style_info="$_style_bold_gray_default"
+export _style_ok="$_style_bold_green_default"
+export _style_warn="$_style_bold_yellow_default"
+export _style_error="$_style_bold_red_default"
 
 
 function style_echo() {
   local color=$(eval echo \$$"_style_$1")
-  local content="$2"
+  shift 1
+  local content="$@"
   echo -e "${color}${content}${_style_no}"
 }
 export -f style_echo

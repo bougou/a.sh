@@ -30,10 +30,13 @@ pipeline {
     stage('Build') {
       steps {
         script {
+          sendNotifications("INFO", "Upload a.sh")
+
           sh """
-            echo "test"
+            s3cmd -c \$HOME/.s3cfg.qiniu put --acl-public a.sh s3://bougou/
+
+            echo "\nhttp://bougou.42cloud.com/a.sh" >> ${env.BUILD_OUTPUT_FILE}
           """
-          sendNotifications("INFO", "Build docker images")
         }
       }
     }
