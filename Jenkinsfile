@@ -1,6 +1,7 @@
 pipeline {
   agent any
 
+
   environment {
     // Jenkins does not include /usr/local/bin in the PATH
     PATH="/usr/local/bin:$PATH"
