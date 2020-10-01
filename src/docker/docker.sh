@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function a.docker.ct_pid() {
   # You pass multiple container identifiers
   docker inspect --format '{{.State.Pid}}' "$@"

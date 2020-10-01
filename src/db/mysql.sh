@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function a.db.create_mysql_db_user_pass() {
   if [[ $# -lt 1 ]]; then
     echo "Error: Invalid parameters"
@@ -83,8 +81,8 @@ use information_schema;
 select concat(sum(data_length) / 1024 / 1024 / 1024, ' G') from tables where table_schema not in ('information_schema', 'performance_schema', 'test');
 "
 
-# output example
-cat >/dev/null <<EOF
+  # output example
+  cat >/dev/null <<EOF
 +-----------------------------------------------------+
 | concat(sum(data_length) / 1024 / 1024 / 1024, ' G') |
 +-----------------------------------------------------+

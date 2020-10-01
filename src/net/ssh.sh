@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Steal from kubernetes source code.
 
 function a.net.run_over_ssh() {
@@ -9,7 +7,6 @@ function a.net.run_over_ssh() {
   ssh ${SSH_OPTS} -t "${host}" "$@" >/dev/null 2>&1
 }
 export -f a.net.run_over_ssh
-
 
 function a.net.run_over_scp() {
   # copy file recursively over ssh

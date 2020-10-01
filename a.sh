@@ -22,6 +22,16 @@ function a.docker.ct_enter() {
 }
 export -f a.docker.ct_enter
 
+function a.net.tcpdump_http() {
+  # see: https://serverfault.com/questions/504431/human-readable-format-for-http-headers-with-tcpdump
+
+  local http_port=$1
+
+  stdbuf -oL -eL $(which tcpdump) -A -s 10240 "tcp port ${http_port} and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)" | egrep --line-buffered "^........(GET |HTTP\/|POST |HEAD )|^[A-Za-z0-9-]+: " | sed -r 's/^........(GET |HTTP\/|POST |HEAD )/\n\1/g'
+
+}
+export a.net.tcpdump_http
+
 alias a.net.tcp_state_sum='ss -ant | tail -n+2 | awk '\''{print $1}'\''| sort | uniq -c | sort -n'
 
 function a.net.show_tcp_state() {
@@ -39,74 +49,72 @@ function a.net.valid_ipv4() {
     IFS='.'
     ip=($ip)
     IFS=$OIFS
-    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-        && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && \
+    ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
     stat=$?
   fi
   return $stat
 }
 export -f a.net.valid_ipv4
 
-
 function a.net.wait_until_resolve_hostname() {
-    local _host="$1"
+  local _host="$1"
 
-    if valid_ipv4 "$_host"; then
-        echo "Got ipv4 address, no need to resolve."
-        return
+  if valid_ipv4 "$_host"; then
+    echo "Got ipv4 address, no need to resolve."
+    return
+  fi
+
+  echo "$_host is not a valid ipv4 address, try to resolve it."
+  while true; do
+    if ! getent hosts "$_host" >/dev/null 2>&1; then
+      echo "not yet resolved $_host, retry..." >&2
+      sleep 2
+    else
+      ip=$(getent hosts "$_host" | head -n1 | awk '{print $1}')
+      echo "resolved $_host to $ip" >&2
+      echo $ip
+      break
     fi
-
-    echo "$_host is not a valid ipv4 address, try to resolve it."
-    while true; do
-        if ! getent hosts "$_host" >/dev/null 2>&1; then
-            echo "not yet resolved $_host, retry..." >&2
-            sleep 2
-        else
-            ip=`getent hosts "$_host" | head -n1 | awk '{print $1}'`
-            echo "resolved $_host to $ip" >&2
-            echo $ip
-            break
-        fi
-    done
+  done
 }
 export -f a.net.wait_until_resolve_hostname
 
-
 function a.net.wait_until_hostname_resolved() {
-    local _host="$1"
+  local _host="$1"
 
-    if valid_ipv4 "$_host"; then
-        echo "Got ipv4 address, no need to resolve."
-        return
+  if valid_ipv4 "$_host"; then
+    echo "Got ipv4 address, no need to resolve."
+    return
+  fi
+
+  echo "$_host is not a valid ipv4 address, try to resolve it."
+  while true; do
+    if ! getent hosts "$_host" >/dev/null 2>&1; then
+      echo "not yet resolved $_host, retry..." >&2
+      sleep 2
+    else
+      ip=$(getent hosts "$_host" | head -n1 | awk '{print $1}')
+      echo "resolved $_host to $ip" >&2
+      echo $ip
+      break
     fi
-
-    echo "$_host is not a valid ipv4 address, try to resolve it."
-    while true; do
-        if ! getent hosts "$_host" >/dev/null 2>&1; then
-            echo "not yet resolved $_host, retry..." >&2
-            sleep 2
-        else
-            ip=`getent hosts "$_host" | head -n1 | awk '{print $1}'`
-            echo "resolved $_host to $ip" >&2
-            echo $ip
-            break
-        fi
-    done
+  done
 }
 export -f a.net.wait_until_hostname_resolved
 
 function a.net.wait_until_port_reached() {
-    local _h=$1
-    local _p=$2
-    while true; do
-        if nc -w 2 -z "${_h}" "${_p}"; then
-            echo "wait completed ${_h}:${_p}"
-            break
-        else
-            echo "still waiting ${_h}:${_p}"
-            sleep 2
-        fi
-    done
+  local _h=$1
+  local _p=$2
+  while true; do
+    if nc -w 2 -z "${_h}" "${_p}"; then
+      echo "wait completed ${_h}:${_p}"
+      break
+    else
+      echo "still waiting ${_h}:${_p}"
+      sleep 2
+    fi
+  done
 }
 export -f a.net.wait_until_port_reached
 
@@ -118,7 +126,6 @@ function a.net.get_inf_ip() {
 }
 export -f a.net.get_inf_ip
 
-
 function a.net.check_inf_ip() {
   # Check whether the specified interface has the specified ip address.
   local _inf=$1
@@ -126,7 +133,6 @@ function a.net.check_inf_ip() {
   ip address show $_inf | grep 'inet ' | awk '{print $2}' | awk -F/ '{print $1}' | grep -sq $_ipaddr
 }
 export -f a.net.check_inf_ip
-
 
 function a.net.add_inf_ip() {
   # Add the specified ip address to the specified interface.
@@ -136,7 +142,6 @@ function a.net.add_inf_ip() {
   arping -I $_inf -c 3 -U $_ipaddr
 }
 export -f a.net.add_inf_ip
-
 
 function a.net.check_configure_inf_ip() {
   local _inf=$1
@@ -159,6 +164,7 @@ function a.net.check_configure_inf_ip() {
   fi
 }
 export -f a.net.check_configure_inf_ip
+
 function a.net.ovs_bind_br_if() {
   ##If the interface has ip, then the ip will be configured on the ovs bridge.
 
@@ -176,11 +182,11 @@ function a.net.ovs_bind_br_if() {
   if [[ X"$br_ip" != 'X' ]]; then
     br_prefix=$(nmcli dev show $br_if | grep -F 'IP4.ADDRESS[1]' | awk '{print $2}' | awk -F/ '{print $2}')
     br_gw=$(nmcli dev show $br_if | grep -F 'IP4.GATEWAY' | awk '{print $2}')
-    br_dns1=$(nmcli dev show $br_if | grep -F 'IP4.DNS[1]'| awk '{print $2}')
-    br_dns2=$(nmcli dev show $br_if | grep -F 'IP4.DNS[2]'| awk '{print $2}')
+    br_dns1=$(nmcli dev show $br_if | grep -F 'IP4.DNS[1]' | awk '{print $2}')
+    br_dns2=$(nmcli dev show $br_if | grep -F 'IP4.DNS[2]' | awk '{print $2}')
   fi
 
-  cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$ovs_br
+  cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-$ovs_br
 DEVICE=$ovs_br
 DEVICETYPE=ovs
 TYPE=OVSBridge
@@ -193,8 +199,7 @@ DNS1=$br_dns1
 DNS2=$br_dns2
 EOF
 
-
-  cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$br_if
+  cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-$br_if
 DEVICE=$br_if
 DEVICETYPE=ovs
 TYPE=OVSPort
@@ -206,7 +211,7 @@ EOF
   if grep -sq '^NOZEROCONF=' /etc/sysconfig/network; then
     sed -i '/^NOZEROCONF=/c\NOZEROCONF=yes' /etc/sysconfig/network
   else
-    echo 'NOZEROCONF=yes' >> /etc/sysconfig/network
+    echo 'NOZEROCONF=yes' >>/etc/sysconfig/network
   fi
 
   ## add-port must be executed afther systemctl restart network.
@@ -219,7 +224,6 @@ EOF
 }
 export -f a.net.ovs_bind_br_if
 
-
 function a.net.run_over_ssh() {
   # run command over ssh
   local host="$1"
@@ -227,7 +231,6 @@ function a.net.run_over_ssh() {
   ssh ${SSH_OPTS} -t "${host}" "$@" >/dev/null 2>&1
 }
 export -f a.net.run_over_ssh
-
 
 function a.net.run_over_scp() {
   # copy file recursively over ssh
@@ -238,81 +241,78 @@ function a.net.run_over_scp() {
 }
 export -f a.net.run_over_scp
 
-
 function a.util.is_number() {
-    if [[ "$1" =~ ^[0-9]+$ ]]; then
-        return 0
-    else
-        return 1
-    fi
+  if [[ "$1" =~ ^[0-9]+$ ]]; then
+    return 0
+  else
+    return 1
+  fi
 }
 export -f a.util.is_number
 
-
 function a.util.compare_version() {
-    # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
-    # Given two versions, convert them into two arrays by splitting the version string by dot(.).
-    # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
-    # If the two elments are both pure numbers, compare them numerically, or else compare them lexicographically/alphanumerically
-    # 8 and 008 are considered to be numerically equal.
-    # 1.1 and 1.001 are considered to be equal versions.
+  # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
+  # Given two versions, convert them into two arrays by splitting the version string by dot(.).
+  # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
+  # If the two elments are both pure numbers, compare them numerically, or else compare them lexicographically/alphanumerically
+  # 8 and 008 are considered to be numerically equal.
+  # 1.1 and 1.001 are considered to be equal versions.
 
-    local _version1="${1:-0}"
-    local _version2="${2:-0}"
-    local _op="${3:-eq}"
+  local _version1="${1:-0}"
+  local _version2="${2:-0}"
+  local _op="${3:-eq}"
 
-    # operator(OP) is one of eq, ne, lt, le, gt, or ge,
-    # if op is NOT a valid string, forcely set to 'eq'
-    if ! [[ $_op == 'eq' || $_op == 'ne' || $_op == 'lt' || $_op == 'le' || $_op == 'gt' || $_op == 'ge' ]]; then
-        $_op == 'eq'
-    fi
+  # operator(OP) is one of eq, ne, lt, le, gt, or ge,
+  # if op is NOT a valid string, forcely set to 'eq'
+  if ! [[ $_op == 'eq' || $_op == 'ne' || $_op == 'lt' || $_op == 'le' || $_op == 'gt' || $_op == 'ge' ]]; then
+    $_op == 'eq'
+  fi
 
-    TRUE=0
-    FALSE=1
+  TRUE=0
+  FALSE=1
 
-    # the leading and trailing space/dot will be ignored by converting to array
-    version1_array=(${_version1//./ })
-    version2_array=(${_version2//./ })
-    version2_array_len=${#version2_array[@]}
+  # the leading and trailing space/dot will be ignored by converting to array
+  version1_array=(${_version1//./ })
+  version2_array=(${_version2//./ })
+  version2_array_len=${#version2_array[@]}
 
-    for i in "${!version1_array[@]}"; do
-        v1=${version1_array[i]}
+  for i in "${!version1_array[@]}"; do
+    v1=${version1_array[i]}
 
-        if [ $i -gt $(( version2_array_len - 1 )) ]; then
-            [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
+    if [ $i -gt $((version2_array_len - 1)) ]; then
+      [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
+    else
+      v2=${version2_array[i]}
+
+      if $(a.util.is_number "${v1}") && $(a.util.is_number "${v2}"); then
+        if [ "$v1" -gt "$v2" ]; then # numeric greater
+          [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
+        elif [[ "$v1" -lt "$v2" ]]; then # numeric lower
+          [[ $_op == 'lt' || $_op == 'le' || $_op == 'ne' ]] && return $TRUE || return $FALSE
         else
-            v2=${version2_array[i]}
-
-            if `a.util.is_number "${v1}"` && `a.util.is_number "${v2}"`; then
-                if [ "$v1" -gt "$v2" ]; then # numeric greater
-                    [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
-                elif [[ "$v1" -lt "$v2" ]]; then # numeric lower
-                    [[ $_op == 'lt' || $_op == 'le' || $_op == 'ne' ]] && return $TRUE || return $FALSE
-                else
-                    continue # numeric equal
-                fi
-            else
-                if [[ "$v1" > "$v2" ]]; then  # lexicographically greater
-                    [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
-                elif [[ "$v1" < "$v2" ]]; then # lexicographically lower
-                    [[ $_op == 'lt' || $_op == 'le' || $_op == 'ne' ]] && return $TRUE || return $FALSE
-                else
-                    continue # lexicographically equal
-                fi
-            fi
+          continue # numeric equal
         fi
-    done
-
-    # If the above for loop does not return, it means all subparts of the two versions are 'numeric equal' or 'lexicographically equal'.
-    if [[ $_op == 'eq' || $_op == 'ge' || $_op == 'le' ]]; then
-        return $TRUE
+      else
+        if [[ "$v1" > "$v2" ]]; then # lexicographically greater
+          [[ $_op == 'gt' || $_op == 'ge' || $_op == 'ne' ]] && return $TRUE || return $FALSE
+        elif [[ "$v1" < "$v2" ]]; then # lexicographically lower
+          [[ $_op == 'lt' || $_op == 'le' || $_op == 'ne' ]] && return $TRUE || return $FALSE
+        else
+          continue # lexicographically equal
+        fi
+      fi
     fi
+  done
 
-    return $FALSE
+  # If the above for loop does not return, it means all subparts of the two versions are 'numeric equal' or 'lexicographically equal'.
+  if [[ $_op == 'eq' || $_op == 'ge' || $_op == 'le' ]]; then
+    return $TRUE
+  fi
+
+  return $FALSE
 
 }
 export -f a.util.compare_version
-
 
 function a.util.download_file() {
   local _filepath=$1
@@ -329,20 +329,18 @@ function a.util.download_file() {
 }
 export -f a.util.download_file
 
-
-
 function a.util.check_variables() {
-    # helper function to make sure variables NOT EMPTY
-    # usage: check_variables var1 var2 var3 ...
-    for i in "$@"; do
-        eval _value=\$${i}
-        if [[ $_value == '' ]]; then
-            echo "[X] $i must be set and not empty"
-            exit 1
-        else
-            echo "[Y] $i: $_value"
-        fi
-    done
+  # helper function to make sure variables NOT EMPTY
+  # usage: check_variables var1 var2 var3 ...
+  for i in "$@"; do
+    eval _value=\$${i}
+    if [[ $_value == '' ]]; then
+      echo "[X] $i must be set and not empty"
+      exit 1
+    else
+      echo "[Y] $i: $_value"
+    fi
+  done
 }
 export -f a.util.check_variables
 
@@ -356,7 +354,6 @@ function a.util.get_env_vars() {
   declare -xp | sed 's/^declare -x //'
 }
 export -f a.util.get_env_vars
-
 
 function a.util.set_env_var() {
   # usage: set_env_var "VAR_NAME" "default_value"
@@ -374,7 +371,6 @@ function a.util.set_env_var() {
 }
 export -f a.util.set_env_var
 
-
 function a.util.set_env_var_upper2lower() {
   while read line; do
     var_name=$(echo $line | awk -F= '{print $1}')
@@ -385,7 +381,6 @@ function a.util.set_env_var_upper2lower() {
   done < <(get_env_vars | grep "^[A-Z][A-Z0-9_]*")
 }
 export -f a.util.set_env_var_upper2lower
-
 
 function a.util.env_var_to_yaml() {
   while read line; do
@@ -404,7 +399,6 @@ function a.util.env_var_to_yaml() {
 }
 export -f a.util.env_var_to_yaml
 
-
 function a.util.shell_array_to_yaml_list() {
   local arr=("$@")
 
@@ -421,7 +415,6 @@ function a.util.shell_array_to_yaml_list() {
   echo
 }
 export -f a.util.shell_array_to_yaml_list
-
 
 function a.util.shell_array_to_yaml_dash_list() {
   local arr=("$@")
@@ -448,7 +441,6 @@ function a.file.combine_lines_backslash() {
 }
 export -f a.file.combine_lines_backslash
 
-
 function a.config.update_config() {
   key=$1
   value=$2
@@ -462,7 +454,7 @@ function a.config.update_config() {
     if grep -E -q "^$key$sep" "$file"; then
       sed -r -i "s@^$key$sep.*@$key$sep $value@g" "$file" #note that no config values may contain an '@' char
     else
-      echo "$key$sep $value" >> "$file"
+      echo "$key$sep $value" >>"$file"
     fi
   elif [[ $sep == "=" ]]; then
     crudini --set "$file" '' "$key" "$value"
@@ -472,20 +464,18 @@ function a.config.update_config() {
 }
 export -f a.config.update_config
 
-
 function a.config.mod_file() {
   local _file=$1
   local _option=$2
   local _value=$3
 
-  if `cat $_file | grep -sq "^$_option ="`; then
+  if $(cat $_file | grep -sq "^$_option ="); then
     sed -i "s|\($_option =\).*|\1 $_value|g" $_file
   else
-    echo "$_option = $_value" >> $_file
+    echo "$_option = $_value" >>$_file
   fi
 }
 export -f a.config.mod_file
-
 
 function a.k8s.get_container_ip() {
   # scrape the first non-localhost IP address of the container
@@ -500,7 +490,6 @@ function a.k8s.get_container_ip() {
 }
 export -f a.k8s.get_container_ip
 
-
 function a.k8s.get_k8s_pod_self_info() {
   # used inside the pod
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -510,7 +499,6 @@ function a.k8s.get_k8s_pod_self_info() {
   curl -sS --cacert "$KUBE_CACERT" -H "Authorization: Bearer $KUBE_TOKEN" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$KUBE_NAMESPACE/pods/$HOSTNAME
 }
 export -f a.k8s.get_k8s_pod_self_info
-
 
 function a.k8s.get_k8s_statefulset_pod_replicas() {
   # used inside the pod
@@ -538,15 +526,12 @@ function a.k8s.get_k8s_statefulset_pod_replicas() {
 }
 export -f a.k8s.get_k8s_statefulset_pod_replicas
 
-
-
-
 function a.k8s.get_pod_name() {
   # 1. If POD_NAME is set and not emtpy, use it.
   # 2. Try to auto derive pod name
   # 3. default hostname
 
-  local _host=`hostname -s`
+  local _host=$(hostname -s)
 
   if [[ -n "${POD_NAME:+1}" ]]; then
     echo "${POD_NAME}"
@@ -561,20 +546,18 @@ function a.k8s.get_pod_name() {
 }
 export -f a.k8s.get_pod_name
 
-
 function a.k8s.get_pod_domain() {
   # 1. Try to auto derive pod domain
   # 2. default empty
   local _domain=''
 
   if hostname -d >/dev/null 2>&1; then
-    _domain=`hostname -d`
+    _domain=$(hostname -d)
   fi
 
   echo $_domain
 }
 export -f a.k8s.get_pod_domain
-
 
 function a.k8s.get_pod_fqdn() {
   local _domain="$(get_pod_domain)"
@@ -587,12 +570,11 @@ function a.k8s.get_pod_fqdn() {
 }
 export -f a.k8s.get_pod_fqdn
 
-
 function a.k8s.get_pod_ordinal() {
   # 1. If POD_ORDINAL is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod ordinal
   # 3. default 0
-  local _host=`hostname -s`
+  local _host=$(hostname -s)
 
   if [[ -n "${POD_ORDINAL:+1}" ]]; then
     if a.util.is_number ${POD_ORDINAL}; then
@@ -611,7 +593,6 @@ function a.k8s.get_pod_ordinal() {
   fi
 }
 export -f a.k8s.get_pod_ordinal
-
 
 function a.k8s.get_pod_replicas() {
   # 1. If POD_REPLICAS is set, then it must be set to a valid number or else failed.
@@ -632,17 +613,17 @@ function a.k8s.get_pod_replicas() {
 }
 export -f a.k8s.get_pod_replicas
 
-export _style_no="\033[0m"            # no color
+export _style_no="\033[0m" # no color
 
 declare -A fontStyle=(
-  ["normal"]="0"          # 正常
-  ["bold"]="1"            # 粗体
-  ["dim"]="2"             # 暗淡
-  ["underline"]="4"       # 下划线
-  ["blink"]="5"           # 闪烁
-  ["strikethrough"]="6"   # 删除线
-  ["invert"]="7"          # 反相
-  ["hidden"]="8"          # 隐藏
+  ["normal"]="0"        # 正常
+  ["bold"]="1"          # 粗体
+  ["dim"]="2"           # 暗淡
+  ["underline"]="4"     # 下划线
+  ["blink"]="5"         # 闪烁
+  ["strikethrough"]="6" # 删除线
+  ["invert"]="7"        # 反相
+  ["hidden"]="8"        # 隐藏
 )
 
 declare -A fontColor=(
@@ -652,8 +633,8 @@ declare -A fontColor=(
   ["green"]="32"
   ["yellow"]="33"
   ["blue"]="34"
-  ["magenta"]="35"    # 洋红
-  ["cyan"]="36"       # 蓝绿
+  ["magenta"]="35" # 洋红
+  ["cyan"]="36"    # 蓝绿
   ["lightgray"]="37"
   ["darkgray"]="90"
   ["lightred"]="91"
@@ -693,13 +674,10 @@ for fs in ${!fontStyle[@]}; do
   done
 done
 
-
-
 export _style_info="$_style_bold_gray_default"
 export _style_ok="$_style_bold_green_default"
 export _style_warn="$_style_bold_yellow_default"
 export _style_error="$_style_bold_red_default"
-
 
 function style_echo() {
   local color=$(eval echo \$$"_style_$1")
@@ -708,7 +686,6 @@ function style_echo() {
   echo -e "${color}${content}${_style_no}"
 }
 export -f style_echo
-
 
 function echo_info() {
   style_echo info "$*"
@@ -735,7 +712,6 @@ function echo_highlight() {
 }
 export -f echo_highlight
 
-
 log() {
   echo "$(date +'%F %T.%3N') | $(echo_info INFO) | $*"
 }
@@ -756,27 +732,35 @@ log_err() {
 }
 export -f log_err
 
-
-
-underline() { printf "${underline}${bold}%s${reset}\n" "$@"
+underline() {
+  printf "${underline}${bold}%s${reset}\n" "$@"
 }
-h1() { printf "\n${underline}${bold}${blue}%s${reset}\n" "$@"
+h1() {
+  printf "\n${underline}${bold}${blue}%s${reset}\n" "$@"
 }
-h2() { printf "\n${underline}${bold}${white}%s${reset}\n" "$@"
+h2() {
+  printf "\n${underline}${bold}${white}%s${reset}\n" "$@"
 }
-debug() { printf "${white}%s${reset}\n" "$@"
+debug() {
+  printf "${white}%s${reset}\n" "$@"
 }
-info() { printf "${white}➜ %s${reset}\n" "$@"
+info() {
+  printf "${white}➜ %s${reset}\n" "$@"
 }
-success() { printf "${green}✔ %s${reset}\n" "$@"
+success() {
+  printf "${green}✔ %s${reset}\n" "$@"
 }
-error() { printf "${red}✖ %s${reset}\n" "$@"
+error() {
+  printf "${red}✖ %s${reset}\n" "$@"
 }
-warn() { printf "${tan}➜ %s${reset}\n" "$@"
+warn() {
+  printf "${tan}➜ %s${reset}\n" "$@"
 }
-bold() { printf "${bold}%s${reset}\n" "$@"
+bold() {
+  printf "${bold}%s${reset}\n" "$@"
 }
-note() { printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
+note() {
+  printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
 }
 
 function a.db.create_mysql_db_user_pass() {
@@ -862,7 +846,8 @@ use information_schema;
 select concat(sum(data_length) / 1024 / 1024 / 1024, ' G') from tables where table_schema not in ('information_schema', 'performance_schema', 'test');
 "
 
-cat >/dev/null <<EOF
+  # output example
+  cat >/dev/null <<EOF
 +-----------------------------------------------------+
 | concat(sum(data_length) / 1024 / 1024 / 1024, ' G') |
 +-----------------------------------------------------+
@@ -887,7 +872,7 @@ export -f a.os.show_top_oom_scores
 
 function a.os.dmi_info() {
 
-cat <<EOF | xargs -I {} sh -c 'printf "%30s: " {}; dmidecode -s {} | head -n1; echo' | sed '/^$/d'
+  cat <<EOF | xargs -I {} sh -c 'printf "%30s: " {}; dmidecode -s {} | head -n1; echo' | sed '/^$/d'
   bios-vendor
   bios-version
   bios-release-date
@@ -917,7 +902,7 @@ export -f a.os.dmi_info
 
 function a.os.dmi_info2() {
 
-echo "
+  echo "
 bios-vendor
 bios-version
 bios-release-date
@@ -940,35 +925,34 @@ processor-family
 processor-manufacturer
 processor-version
 processor-frequency
-" | while read cmd
-do
-  [[ -z $cmd ]] && continue
-  printf "%-25s: " $cmd
-  OLD_IFS=$IFS
-  IFS=$(echo -en "\n\b");
-  res=$(dmidecode -s $cmd)
-  [[ -z $res ]] && echo '[none]' && continue
-  i=1
-  for r in $res; do
-    if [[ $i -eq 1 ]]; then
-      printf "%s\n" $r
-    else
-      printf " %.0s" {1..27}
-      printf "%s\n" $r
-	fi
-	i=$(( i+1 ))
+" | while read cmd; do
+    [[ -z $cmd ]] && continue
+    printf "%-25s: " $cmd
+    OLD_IFS=$IFS
+    IFS=$(echo -en "\n\b")
+    res=$(dmidecode -s $cmd)
+    [[ -z $res ]] && echo '[none]' && continue
+    i=1
+    for r in $res; do
+      if [[ $i -eq 1 ]]; then
+        printf "%s\n" $r
+      else
+        printf " %.0s" {1..27}
+        printf "%s\n" $r
+      fi
+      i=$((i + 1))
+    done
   done
-done
-IFS=$OLD_IFS
+  IFS=$OLD_IFS
 
 }
 export -f a.os.dmi_info2
 
 function a.os.show_cpu_numbers() {
-  cpus_physical=`cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l`
-  cores_per_cpu=`cat  /proc/cpuinfo | grep "cpu cores" | sort | uniq | awk -F: '{print $2}'`
-  cores_all=$(( cores_per_cpu * cpus_physical ))
-  cpus_logical=`cat /proc/cpuinfo | grep "processor" | wc -l`
+  cpus_physical=$(cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l)
+  cores_per_cpu=$(cat /proc/cpuinfo | grep "cpu cores" | sort | uniq | awk -F: '{print $2}')
+  cores_all=$((cores_per_cpu * cpus_physical))
+  cpus_logical=$(cat /proc/cpuinfo | grep "processor" | wc -l)
 
   # Desc of Fields in File /proc/cpuinfo
   # processor:    ID of logical CPU.
@@ -982,7 +966,7 @@ function a.os.show_cpu_numbers() {
   printf "%-40s%-10s\n" "Total logical CPUs:" "$cpus_logical"
 
   if [[ $cpus_logical -eq $cores_all ]]; then
-      printf "%-40s%-10s\n" "Hyper Thread (HT):" "Not Enabled"
+    printf "%-40s%-10s\n" "Hyper Thread (HT):" "Not Enabled"
   fi
 
 }
@@ -1009,7 +993,7 @@ function a.os.show_cpu_usage_of_pid() {
   p_starttime_j=$(cat /proc/$PID/stat | awk '{print $22}')
   p_starttime=$(echo "scale=2;$p_starttime_j/100" | bc)
 
-  p_cputime_j=$(( p_utime_j + p_stime_j ))
+  p_cputime_j=$((p_utime_j + p_stime_j))
   p_cputime=$(echo "scale=2;$p_cputime_j/100" | bc)
 
   p_runtime=$(echo "$uptime-$p_starttime" | bc)
@@ -1047,7 +1031,6 @@ function a.pkg.rpm_yum_install() {
   [[ "X$_not_installed_pkgs" != "X" ]] && yum install -y $_not_installed_pkgs || :
 }
 export -f a.pkg.rpm_yum_install
-
 
 function a.pkg.rpm_package_installed() {
   # determine whether a rpm package is installed

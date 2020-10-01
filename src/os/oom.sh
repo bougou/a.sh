@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function a.os.show_top_oom_scores() {
   printf "%5s %6s %s\n" "SCORE" "PID" "NAME"
 

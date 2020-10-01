@@ -1,17 +1,15 @@
-#!/bin/bash
-
-export _style_no="\033[0m"            # no color
+export _style_no="\033[0m" # no color
 
 # https://misc.flogisoft.com/bash/tip_colors_and_formatting
 declare -A fontStyle=(
-  ["normal"]="0"          # 正常
-  ["bold"]="1"            # 粗体
-  ["dim"]="2"             # 暗淡
-  ["underline"]="4"       # 下划线
-  ["blink"]="5"           # 闪烁
-  ["strikethrough"]="6"   # 删除线
-  ["invert"]="7"          # 反相
-  ["hidden"]="8"          # 隐藏
+  ["normal"]="0"        # 正常
+  ["bold"]="1"          # 粗体
+  ["dim"]="2"           # 暗淡
+  ["underline"]="4"     # 下划线
+  ["blink"]="5"         # 闪烁
+  ["strikethrough"]="6" # 删除线
+  ["invert"]="7"        # 反相
+  ["hidden"]="8"        # 隐藏
 )
 
 declare -A fontColor=(
@@ -21,8 +19,8 @@ declare -A fontColor=(
   ["green"]="32"
   ["yellow"]="33"
   ["blue"]="34"
-  ["magenta"]="35"    # 洋红
-  ["cyan"]="36"       # 蓝绿
+  ["magenta"]="35" # 洋红
+  ["cyan"]="36"    # 蓝绿
   ["lightgray"]="37"
   ["darkgray"]="90"
   ["lightred"]="91"
@@ -62,13 +60,10 @@ for fs in ${!fontStyle[@]}; do
   done
 done
 
-
-
 export _style_info="$_style_bold_gray_default"
 export _style_ok="$_style_bold_green_default"
 export _style_warn="$_style_bold_yellow_default"
 export _style_error="$_style_bold_red_default"
-
 
 # style_echo red "hello\nworld"
 function style_echo() {
@@ -78,7 +73,6 @@ function style_echo() {
   echo -e "${color}${content}${_style_no}"
 }
 export -f style_echo
-
 
 function echo_info() {
   style_echo info "$*"
@@ -127,25 +121,33 @@ log_err() {
 }
 export -f log_err
 
-
-
-underline() { printf "${underline}${bold}%s${reset}\n" "$@"
+underline() {
+  printf "${underline}${bold}%s${reset}\n" "$@"
 }
-h1() { printf "\n${underline}${bold}${blue}%s${reset}\n" "$@"
+h1() {
+  printf "\n${underline}${bold}${blue}%s${reset}\n" "$@"
 }
-h2() { printf "\n${underline}${bold}${white}%s${reset}\n" "$@"
+h2() {
+  printf "\n${underline}${bold}${white}%s${reset}\n" "$@"
 }
-debug() { printf "${white}%s${reset}\n" "$@"
+debug() {
+  printf "${white}%s${reset}\n" "$@"
 }
-info() { printf "${white}➜ %s${reset}\n" "$@"
+info() {
+  printf "${white}➜ %s${reset}\n" "$@"
 }
-success() { printf "${green}✔ %s${reset}\n" "$@"
+success() {
+  printf "${green}✔ %s${reset}\n" "$@"
 }
-error() { printf "${red}✖ %s${reset}\n" "$@"
+error() {
+  printf "${red}✖ %s${reset}\n" "$@"
 }
-warn() { printf "${tan}➜ %s${reset}\n" "$@"
+warn() {
+  printf "${tan}➜ %s${reset}\n" "$@"
 }
-bold() { printf "${bold}%s${reset}\n" "$@"
+bold() {
+  printf "${bold}%s${reset}\n" "$@"
 }
-note() { printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
+note() {
+  printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
 }

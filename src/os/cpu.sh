@@ -1,10 +1,8 @@
-#!/bin/bash
-
 function a.os.show_cpu_numbers() {
-  cpus_physical=`cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l`
-  cores_per_cpu=`cat  /proc/cpuinfo | grep "cpu cores" | sort | uniq | awk -F: '{print $2}'`
-  cores_all=$(( cores_per_cpu * cpus_physical ))
-  cpus_logical=`cat /proc/cpuinfo | grep "processor" | wc -l`
+  cpus_physical=$(cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l)
+  cores_per_cpu=$(cat /proc/cpuinfo | grep "cpu cores" | sort | uniq | awk -F: '{print $2}')
+  cores_all=$((cores_per_cpu * cpus_physical))
+  cpus_logical=$(cat /proc/cpuinfo | grep "processor" | wc -l)
 
   # Desc of Fields in File /proc/cpuinfo
   # processor:    ID of logical CPU.
@@ -18,7 +16,7 @@ function a.os.show_cpu_numbers() {
   printf "%-40s%-10s\n" "Total logical CPUs:" "$cpus_logical"
 
   if [[ $cpus_logical -eq $cores_all ]]; then
-      printf "%-40s%-10s\n" "Hyper Thread (HT):" "Not Enabled"
+    printf "%-40s%-10s\n" "Hyper Thread (HT):" "Not Enabled"
   fi
 
 }
@@ -45,7 +43,7 @@ function a.os.show_cpu_usage_of_pid() {
   p_starttime_j=$(cat /proc/$PID/stat | awk '{print $22}')
   p_starttime=$(echo "scale=2;$p_starttime_j/100" | bc)
 
-  p_cputime_j=$(( p_utime_j + p_stime_j ))
+  p_cputime_j=$((p_utime_j + p_stime_j))
   p_cputime=$(echo "scale=2;$p_cputime_j/100" | bc)
 
   p_runtime=$(echo "$uptime-$p_starttime" | bc)

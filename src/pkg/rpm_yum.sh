@@ -1,5 +1,3 @@
-#!/bin/bash
-
 function a.pkg.rpm_yum_install() {
   # yum install a list of packages and omit already installed packages.
   local _not_installed_pkgs=""
@@ -9,7 +7,6 @@ function a.pkg.rpm_yum_install() {
   [[ "X$_not_installed_pkgs" != "X" ]] && yum install -y $_not_installed_pkgs || :
 }
 export -f a.pkg.rpm_yum_install
-
 
 function a.pkg.rpm_package_installed() {
   # determine whether a rpm package is installed

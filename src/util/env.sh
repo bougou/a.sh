@@ -1,10 +1,7 @@
-#!/bin/bash
-
 function a.util.get_env_vars() {
   declare -xp | sed 's/^declare -x //'
 }
 export -f a.util.get_env_vars
-
 
 function a.util.set_env_var() {
   # usage: set_env_var "VAR_NAME" "default_value"
@@ -22,7 +19,6 @@ function a.util.set_env_var() {
 }
 export -f a.util.set_env_var
 
-
 function a.util.set_env_var_upper2lower() {
   while read line; do
     var_name=$(echo $line | awk -F= '{print $1}')
@@ -33,7 +29,6 @@ function a.util.set_env_var_upper2lower() {
   done < <(get_env_vars | grep "^[A-Z][A-Z0-9_]*")
 }
 export -f a.util.set_env_var_upper2lower
-
 
 function a.util.env_var_to_yaml() {
   while read line; do
@@ -51,7 +46,6 @@ function a.util.env_var_to_yaml() {
   done < <(get_env_vars | sort)
 }
 export -f a.util.env_var_to_yaml
-
 
 # eg:
 # args: 192.168.1.1 192.168.1.2 192.168.1.3
@@ -72,7 +66,6 @@ function a.util.shell_array_to_yaml_list() {
   echo
 }
 export -f a.util.shell_array_to_yaml_list
-
 
 # eg:
 # args: 192.168.1.1 192.168.1.2 192.168.1.3

@@ -1,8 +1,6 @@
-#!/bin/bash
-
 function a.os.dmi_info() {
 
-cat <<EOF | xargs -I {} sh -c 'printf "%30s: " {}; dmidecode -s {} | head -n1; echo' | sed '/^$/d'
+  cat <<EOF | xargs -I {} sh -c 'printf "%30s: " {}; dmidecode -s {} | head -n1; echo' | sed '/^$/d'
   bios-vendor
   bios-version
   bios-release-date
@@ -32,7 +30,7 @@ export -f a.os.dmi_info
 
 function a.os.dmi_info2() {
 
-echo "
+  echo "
 bios-vendor
 bios-version
 bios-release-date
@@ -55,26 +53,25 @@ processor-family
 processor-manufacturer
 processor-version
 processor-frequency
-" | while read cmd
-do
-  [[ -z $cmd ]] && continue
-  printf "%-25s: " $cmd
-  OLD_IFS=$IFS
-  IFS=$(echo -en "\n\b");
-  res=$(dmidecode -s $cmd)
-  [[ -z $res ]] && echo '[none]' && continue
-  i=1
-  for r in $res; do
-    if [[ $i -eq 1 ]]; then
-      printf "%s\n" $r
-    else
-      printf " %.0s" {1..27}
-      printf "%s\n" $r
-	fi
-	i=$(( i+1 ))
+" | while read cmd; do
+    [[ -z $cmd ]] && continue
+    printf "%-25s: " $cmd
+    OLD_IFS=$IFS
+    IFS=$(echo -en "\n\b")
+    res=$(dmidecode -s $cmd)
+    [[ -z $res ]] && echo '[none]' && continue
+    i=1
+    for r in $res; do
+      if [[ $i -eq 1 ]]; then
+        printf "%s\n" $r
+      else
+        printf " %.0s" {1..27}
+        printf "%s\n" $r
+      fi
+      i=$((i + 1))
+    done
   done
-done
-IFS=$OLD_IFS
+  IFS=$OLD_IFS
 
 }
 export -f a.os.dmi_info2

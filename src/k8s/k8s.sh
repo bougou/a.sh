@@ -1,5 +1,3 @@
-#!/bin/bash
-
 ###
 ###
 ### The following functions are mainly used inside docker containers.
@@ -19,7 +17,6 @@ function a.k8s.get_container_ip() {
 }
 export -f a.k8s.get_container_ip
 
-
 function a.k8s.get_k8s_pod_self_info() {
   # used inside the pod
   local KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
@@ -29,7 +26,6 @@ function a.k8s.get_k8s_pod_self_info() {
   curl -sS --cacert "$KUBE_CACERT" -H "Authorization: Bearer $KUBE_TOKEN" https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_PORT_443_TCP_PORT/api/v1/namespaces/$KUBE_NAMESPACE/pods/$HOSTNAME
 }
 export -f a.k8s.get_k8s_pod_self_info
-
 
 function a.k8s.get_k8s_statefulset_pod_replicas() {
   # used inside the pod
@@ -57,13 +53,11 @@ function a.k8s.get_k8s_statefulset_pod_replicas() {
 }
 export -f a.k8s.get_k8s_statefulset_pod_replicas
 
-
 #
 # get_pod_* functions
 # These functions can be called in containers regardless the underlying container platform (K8S, Swarm, ...)
 # or pod type (deployment, statefulset, ...)
 #
-
 
 # Note: pod_name is not Pod Hostname
 # eg: for statefulset pods, hostname is "zookeeper-0", here the pod_name is "zookeeper"
@@ -73,7 +67,7 @@ function a.k8s.get_pod_name() {
   # 2. Try to auto derive pod name
   # 3. default hostname
 
-  local _host=`hostname -s`
+  local _host=$(hostname -s)
 
   if [[ -n "${POD_NAME:+1}" ]]; then
     echo "${POD_NAME}"
@@ -88,20 +82,18 @@ function a.k8s.get_pod_name() {
 }
 export -f a.k8s.get_pod_name
 
-
 function a.k8s.get_pod_domain() {
   # 1. Try to auto derive pod domain
   # 2. default empty
   local _domain=''
 
   if hostname -d >/dev/null 2>&1; then
-    _domain=`hostname -d`
+    _domain=$(hostname -d)
   fi
 
   echo $_domain
 }
 export -f a.k8s.get_pod_domain
-
 
 function a.k8s.get_pod_fqdn() {
   local _domain="$(get_pod_domain)"
@@ -114,12 +106,11 @@ function a.k8s.get_pod_fqdn() {
 }
 export -f a.k8s.get_pod_fqdn
 
-
 function a.k8s.get_pod_ordinal() {
   # 1. If POD_ORDINAL is set, then it must be set to a valid number or else failed.
   # 2. Try to auto derive pod ordinal
   # 3. default 0
-  local _host=`hostname -s`
+  local _host=$(hostname -s)
 
   if [[ -n "${POD_ORDINAL:+1}" ]]; then
     if a.util.is_number ${POD_ORDINAL}; then
@@ -138,7 +129,6 @@ function a.k8s.get_pod_ordinal() {
   fi
 }
 export -f a.k8s.get_pod_ordinal
-
 
 function a.k8s.get_pod_replicas() {
   # 1. If POD_REPLICAS is set, then it must be set to a valid number or else failed.

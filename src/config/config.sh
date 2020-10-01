@@ -1,6 +1,3 @@
-#!/bin/bash
-
-
 function a.config.update_config() {
   key=$1
   value=$2
@@ -14,7 +11,7 @@ function a.config.update_config() {
     if grep -E -q "^$key$sep" "$file"; then
       sed -r -i "s@^$key$sep.*@$key$sep $value@g" "$file" #note that no config values may contain an '@' char
     else
-      echo "$key$sep $value" >> "$file"
+      echo "$key$sep $value" >>"$file"
     fi
   elif [[ $sep == "=" ]]; then
     crudini --set "$file" '' "$key" "$value"
@@ -24,7 +21,6 @@ function a.config.update_config() {
 }
 export -f a.config.update_config
 
-
 # Todo, merge into above update_config function
 # kong.conf does not fully compatible with crudini tool
 function a.config.mod_file() {
@@ -32,10 +28,10 @@ function a.config.mod_file() {
   local _option=$2
   local _value=$3
 
-  if `cat $_file | grep -sq "^$_option ="`; then
+  if $(cat $_file | grep -sq "^$_option ="); then
     sed -i "s|\($_option =\).*|\1 $_value|g" $_file
   else
-    echo "$_option = $_value" >> $_file
+    echo "$_option = $_value" >>$_file
   fi
 }
 export -f a.config.mod_file
