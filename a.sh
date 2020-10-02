@@ -40,6 +40,22 @@ function a.net.show_tcp_state() {
 }
 export -f a.net.show_tcp_state
 
+a.net.show_tcp_port_source_num() {
+  local port=$1
+
+  regpattern=":$port\$"
+
+  netstat -tan |
+    awk -v r=$regpattern '$4 ~ r' |
+    awk '{print $5}' |
+    awk -F: '{print $1}' |
+    grep -v '^$' |
+    sort | uniq -c
+
+  #| awk '$1>100{print $1, $2}'
+}
+export -f a.net.show_tcp_port_source_num
+
 function a.net.valid_ipv4() {
   local ip=$1
   local stat=1
@@ -118,6 +134,7 @@ function a.net.wait_until_port_reached() {
 }
 export -f a.net.wait_until_port_reached
 
+
 function a.net.get_inf_ip() {
   # Get ip address of the specified interface.
   local _inf=$1
@@ -125,6 +142,7 @@ function a.net.get_inf_ip() {
   echo $_ipaddr
 }
 export -f a.net.get_inf_ip
+
 
 function a.net.check_inf_ip() {
   # Check whether the specified interface has the specified ip address.
@@ -134,6 +152,7 @@ function a.net.check_inf_ip() {
 }
 export -f a.net.check_inf_ip
 
+
 function a.net.add_inf_ip() {
   # Add the specified ip address to the specified interface.
   local _inf=$1
@@ -142,6 +161,7 @@ function a.net.add_inf_ip() {
   arping -I $_inf -c 3 -U $_ipaddr
 }
 export -f a.net.add_inf_ip
+
 
 function a.net.check_configure_inf_ip() {
   local _inf=$1
@@ -182,11 +202,11 @@ function a.net.ovs_bind_br_if() {
   if [[ X"$br_ip" != 'X' ]]; then
     br_prefix=$(nmcli dev show $br_if | grep -F 'IP4.ADDRESS[1]' | awk '{print $2}' | awk -F/ '{print $2}')
     br_gw=$(nmcli dev show $br_if | grep -F 'IP4.GATEWAY' | awk '{print $2}')
-    br_dns1=$(nmcli dev show $br_if | grep -F 'IP4.DNS[1]' | awk '{print $2}')
-    br_dns2=$(nmcli dev show $br_if | grep -F 'IP4.DNS[2]' | awk '{print $2}')
+    br_dns1=$(nmcli dev show $br_if | grep -F 'IP4.DNS[1]'| awk '{print $2}')
+    br_dns2=$(nmcli dev show $br_if | grep -F 'IP4.DNS[2]'| awk '{print $2}')
   fi
 
-  cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-$ovs_br
+  cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$ovs_br
 DEVICE=$ovs_br
 DEVICETYPE=ovs
 TYPE=OVSBridge
@@ -199,7 +219,8 @@ DNS1=$br_dns1
 DNS2=$br_dns2
 EOF
 
-  cat <<EOF >/etc/sysconfig/network-scripts/ifcfg-$br_if
+
+  cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-$br_if
 DEVICE=$br_if
 DEVICETYPE=ovs
 TYPE=OVSPort
@@ -211,7 +232,7 @@ EOF
   if grep -sq '^NOZEROCONF=' /etc/sysconfig/network; then
     sed -i '/^NOZEROCONF=/c\NOZEROCONF=yes' /etc/sysconfig/network
   else
-    echo 'NOZEROCONF=yes' >>/etc/sysconfig/network
+    echo 'NOZEROCONF=yes' >> /etc/sysconfig/network
   fi
 
   ## add-port must be executed afther systemctl restart network.
@@ -223,6 +244,7 @@ EOF
 
 }
 export -f a.net.ovs_bind_br_if
+
 
 function a.net.run_over_ssh() {
   # run command over ssh
@@ -441,6 +463,74 @@ function a.file.combine_lines_backslash() {
 }
 export -f a.file.combine_lines_backslash
 
+function a.file.show_filesystem_stat() {
+  input_file=$1
+
+  stat_format=""
+  while read opt comment; do
+    stat_format="$stat_format\n(%$opt) $comment # : $opt"
+  done <<EOF
+  %a     Free blocks available to non-superuser
+  %b     Total data blocks in file system
+  %c     Total file nodes in file system
+  %d     Free file nodes in file system
+  %f     Free blocks in file system
+  %C     SELinux security context string
+  %i     File System ID in hex
+  %l     Maximum length of filenames
+  %n     File name
+  %s     Block size (for faster transfers)
+  %S     Fundamental block size (for block counts)
+  %t     Type in hex
+  %T     Type in human readable form
+EOF
+
+  stat -f --printf="$stat_format" $input_file | awk -F'#' '{printf "%-60s%-20s\n", $1, $2}'
+}
+export -f a.file.show_filesystem_stat
+
+function a.file.show_file_stat() {
+  input_file=$1
+
+  stat_format=""
+  while read opt comment; do
+    stat_format="$stat_format\n(%$opt) $comment # : $opt"
+  done <<EOF
+  %a     Access rights in octal
+  %A     Access rights in human readable form
+  %b     Number of blocks allocated (see %%B)
+  %B     The size in bytes of each block reported by %%b
+  %C     SELinux security context string
+  %d     Device number in decimal
+  %D     Device number in hex
+  %f     Raw mode in hex
+  %F     File type
+  %g     Group ID of owner
+  %G     Group name of owner
+  %h     Number of hard links
+  %i     Inode number
+  %n     File name
+  %N     Quoted file name with dereference if symbolic link
+  %o     I/O block size
+  %s     Total size, in bytes
+  %t     Major device type in hex
+  %T     Minor device type in hex
+  %u     User ID of owner
+  %U     User name of owner
+  %x     Time of last access
+  %X     Time of last access as seconds since Epoch
+  %y     Time of last modification
+  %Y     Time of last modification as seconds since Epoch
+  %z     Time of last change
+  %Z     Time of last change as seconds since Epoch
+EOF
+
+  # the '#' in the echo will be used as a spearator
+  stat --printf="$stat_format" $input_file | awk -F'#' '{printf "%-60s%-20s\n", $1, $2}'
+
+}
+export -f a.file.show_file_stat
+
 function a.config.update_config() {
   key=$1
   value=$2
@@ -476,6 +566,7 @@ function a.config.mod_file() {
   fi
 }
 export -f a.config.mod_file
+
 
 function a.k8s.get_container_ip() {
   # scrape the first non-localhost IP address of the container
@@ -525,6 +616,7 @@ function a.k8s.get_k8s_statefulset_pod_replicas() {
   return 1
 }
 export -f a.k8s.get_k8s_statefulset_pod_replicas
+
 
 function a.k8s.get_pod_name() {
   # 1. If POD_NAME is set and not emtpy, use it.
@@ -711,6 +803,7 @@ function echo_highlight() {
   style_echo highlight "$*"
 }
 export -f echo_highlight
+
 
 log() {
   echo "$(date +'%F %T.%3N') | $(echo_info INFO) | $*"
@@ -947,6 +1040,29 @@ processor-frequency
 
 }
 export -f a.os.dmi_info2
+
+function a.os.audit_human_time() {
+  if [[ $# -ge 1 ]]; then
+    # read from file, only use the first param, others are ignored
+    local CONTENT="$(cat $1)"
+  else
+    # echo "Read content from stdin..."
+    # echo "You can send your content through pipe, like: echo "something" | this_script"
+    local CONTENT=$(</dev/stdin)
+  fi
+
+  echo "$CONTENT" | perl -ne 'use POSIX qw(strftime); chomp; if ( /(.*msg=audit\()(\d+)(\.\d+:\d+.*)/ ) { $td = scalar strftime "%F %H:%M:%S", localtime $2; print "$1$td$3\n"; }'
+
+  # example
+  cat >/dev/null <<EOF
+type=USER_AUTH msg=audit(1601641999.669:17863321): pid=21420 uid=0 auid=4294967295 ses=4294967295 msg='op=password acct="(unknown)" exe="/usr/sbin/sshd" hostname=? addr=106.12.122.92 terminal=ssh res=failed'
+
+type=USER_AUTH msg=audit(2020-10-02 20:33:19.669:17863321): pid=21420 uid=0 auid=4294967295 ses=4294967295 msg='op=password acct="(unknown)" exe="/usr/sbin/sshd" hostname=? addr=106.12.122.92 terminal=ssh res=failed'
+EOF
+
+}
+export -f a.os.audit_human_time
+
 
 function a.os.show_cpu_numbers() {
   cpus_physical=$(cat /proc/cpuinfo | grep -i "physical id" | sort | uniq -c | wc -l)
