@@ -273,7 +273,7 @@ function a.util.is_number() {
 export -f a.util.is_number
 
 function a.util.compare_version() {
-  # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
+  # the leading and trailing space/dot will be ignored. '1', '.1', '1.' are equal versions.
   # Given two versions, convert them into two arrays by splitting the version string by dot(.).
   # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
   # If the two elments are both pure numbers, compare them numerically, or else compare them lexicographically/alphanumerically
@@ -530,6 +530,21 @@ EOF
 
 }
 export -f a.file.show_file_stat
+
+
+function download_newer_file() {
+  local _filepath=$1
+  local _fileurl=$2
+
+  if [[ -e "$_filepath" ]]; then
+    zflag="-z $_filepath"
+  else
+    zflag=
+  fi
+
+  echo "Downloading file: $(basename $_filepath)"
+  curl ${zflag} -o "$_filepath" "$_fileurl"
+}
 
 function a.config.update_config() {
   key=$1

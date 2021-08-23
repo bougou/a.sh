@@ -8,7 +8,7 @@ function a.util.is_number() {
 export -f a.util.is_number
 
 function a.util.compare_version() {
-  # the leading and trailing space/dot will be ignored. 1, .1, 1. are equal versions.
+  # the leading and trailing space/dot will be ignored. '1', '.1', '1.' are equal versions.
   # Given two versions, convert them into two arrays by splitting the version string by dot(.).
   # Recursively comparing elements of the same index from the two arrays until found inequality or loop end.
   # If the two elments are both pure numbers, compare them numerically, or else compare them lexicographically/alphanumerically

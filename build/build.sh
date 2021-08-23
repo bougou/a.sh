@@ -2,7 +2,10 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-output_file="${SCRIPT_DIR}/a.sh"
+ROOT_DIR="$(cd ${SCRIPT_DIR}/.. && pwd)"
+SRC_DIR="$(cd ${ROOT_DIR}/src && pwd)"
+
+output_file="${ROOT_DIR}/a.sh"
 >$output_file
 echo "#!/bin/bash" >>$output_file
 while read file; do
@@ -13,4 +16,4 @@ while read file; do
   echo >>$output_file
   cat $file | grep -v '^#' >>$output_file
 
-done <<<"$(find ${SCRIPT_DIR}/src | grep .sh\$)"
+done <<<"$(find ${SRC_DIR} | grep .sh\$)"

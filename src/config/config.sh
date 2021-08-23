@@ -22,7 +22,6 @@ function a.config.update_config() {
 export -f a.config.update_config
 
 # Todo, merge into above update_config function
-# kong.conf does not fully compatible with crudini tool
 function a.config.mod_file() {
   local _file=$1
   local _option=$2
