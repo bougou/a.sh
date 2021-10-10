@@ -151,3 +151,33 @@ bold() {
 note() {
   printf "\n${underline}${bold}${blue}Note:${reset} ${blue}%s${reset}\n" "$@"
 }
+
+cat <<EOF
+
+color_red="\033[0;31m"
+color_blue="\033[0;34m"
+color_green="\033[0;32m"
+color_purple="\033[0;35m"
+color_no="\033[0;0m"
+
+function info() {
+  local content="$1"
+  echo -e "${color_blue}${content}${color_no}"
+}
+
+function success() {
+  local content="$1"
+  echo -e "${color_green}${content}${color_no}"
+}
+
+function error() {
+  local content="$1"
+  echo -e "${color_red}${content}${color_no}"
+}
+
+function warn() {
+  local content="$1"
+  echo -e "${color_purple}${content}${color_no}"
+}
+
+EOF
